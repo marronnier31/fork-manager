@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Repository {
+  id                String             @id @default(cuid())
+  repoId            Int                @unique
+  owner             String
+  name              String
+  fullName          String             @unique
+  htmlUrl           String
+  description       String?
+  isFork            Boolean            @default(true)
+  parentFullName    String?
+  topics            String             @default("[]")
+  primaryLanguage   String?
+  stargazersCount   Int                @default(0)
+  forksCount        Int                @default(0)
+  createdAt         DateTime
+  updatedAt         DateTime
+  pushedAt          DateTime?
+  defaultBranch     String?
+  summary           String?
+  techStack         String             @default("[]")
+  category          String?
+  hasReadme         Boolean            @default(false)
+  readmeExcerpt     String?
+  analyzedAt        DateTime?
+  activityScore     Int?
+  cleanupReasons    String             @default("[]")
+  isLikelyAbandoned Boolean            @default(false)
+  hasMyCommits      CommitState        @default(unknown)
+  personal          RepositoryPersonal?
+}
+
+model RepositoryPersonal {
+  repositoryId   String      @id
+  status         RepoStatus  @default(watching)
+  tags           String      @default("[]")
+  note           String?
+  savedReason    String?
+  reviewLaterAt  DateTime?
+  isFavorite     Boolean     @default(false)
+  lastReviewedAt DateTime?
+  repository     Repository  @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+}
+
+enum RepoStatus {
+  active
+  watching
+  archive
+  cleanup
+}
+
+enum CommitState {
+  yes
+  no
+  unknown
+}
