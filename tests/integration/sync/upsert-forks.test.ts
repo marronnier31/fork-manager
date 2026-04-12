@@ -2,7 +2,50 @@ import type { ImportedRepository } from "../../../src/lib/repos/types";
 import { describe, expect, it } from "vitest";
 
 describe("upsert fork repositories", () => {
-  it("persists fork fields and preserves personal metadata when imported fields refresh", async () => {
+  it("keeps only forks when normalizing GitHub payloads", async () => {
+    const { normalizeForkRepositories } = await import(
+      "../../../src/lib/github/repositories"
+    );
+
+    const normalized = normalizeForkRepositories([
+      {
+        id: 1,
+        fork: true,
+        full_name: "me/example",
+        owner: { login: "me" },
+        name: "example",
+        html_url: "https://github.com/me/example",
+        description: "updated description",
+        parent: { full_name: "upstream/example" },
+        topics: ["typescript"],
+        language: "TypeScript",
+        stargazers_count: 12,
+        forks_count: 3,
+        created_at: "2024-01-01T00:00:00.000Z",
+        updated_at: "2024-02-01T00:00:00.000Z",
+        pushed_at: "2024-02-02T00:00:00.000Z",
+        default_branch: "main",
+        has_readme: true
+      },
+      {
+        id: 2,
+        fork: false,
+        full_name: "me/ignored",
+        owner: { login: "me" },
+        name: "ignored"
+      }
+    ]);
+
+    expect(normalized).toHaveLength(1);
+    expect(normalized[0]).toMatchObject({
+      repoId: 1,
+      fullName: "me/example",
+      isFork: true,
+      parentFullName: "upstream/example"
+    });
+  });
+
+  it("preserves personal metadata when imported fields refresh", async () => {
     const { upsertForkRepositories } = await import(
       "../../../src/lib/repos/upsert"
     );
@@ -36,14 +79,31 @@ describe("upsert fork repositories", () => {
       hasMyCommits: "unknown"
     };
 
-    const result = await upsertForkRepositories([importedRepository]);
+    const existingPersonal = {
+      status: "watching" as const,
+      tags: ["keep"],
+      note: "keep for later",
+      savedReason: null,
+      reviewLaterAt: null,
+      isFavorite: true,
+      lastReviewedAt: null
+    };
 
-    expect(result[0].github.repoId).toBe(1);
-    expect(result[0].github.fullName).toBe("me/example");
-    expect(result[0].github.isFork).toBe(true);
-    expect(result[0].github.description).toBe("updated description");
-    expect(result[0].personal).toBeDefined();
-    expect(result[0].personal?.status).toBe("watching");
-    expect(result[0].personal?.note).toBe("keep for later");
+    const fakeDb = {
+      repository: {
+        findUnique: async () => ({ personal: existingPersonal }),
+        upsert: async () => ({ personal: null })
+      }
+    };
+
+    const result = await upsertForkRepositories([importedRepository], fakeDb);
+
+    expect(result[0].github).toMatchObject({
+      repoId: 1,
+      fullName: "me/example",
+      isFork: true,
+      description: "updated description"
+    });
+    expect(result[0].personal).toEqual(existingPersonal);
   });
 });
