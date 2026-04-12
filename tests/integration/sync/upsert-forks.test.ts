@@ -42,7 +42,8 @@ describe("upsert fork repositories", () => {
     expect(result[0].github.fullName).toBe("me/example");
     expect(result[0].github.isFork).toBe(true);
     expect(result[0].github.description).toBe("updated description");
-    expect(result[0].personal.status).toBe("watching");
-    expect(result[0].personal.note).toBe("keep for later");
+    expect(result[0].personal).toBeDefined();
+    expect(result[0].personal?.status).toBe("watching");
+    expect(result[0].personal?.note).toBe("keep for later");
   });
 });
