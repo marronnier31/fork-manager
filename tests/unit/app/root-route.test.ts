@@ -1,11 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn()
+}));
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
 
 describe("root route", () => {
-  it("redirects to the dashboard entry point", async () => {
-    const { GET } = await import("../../../src/app/page");
-    const response = await GET();
+  it("redirects the page component to the dashboard entry point", async () => {
+    const page = await import("../../../src/app/page");
+    const { redirect } = await import("next/navigation");
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("/dashboard");
+    expect("GET" in page).toBe(false);
+
+    page.default();
+
+    expect(redirect).toHaveBeenCalledWith("/dashboard");
   });
 });
