@@ -43,5 +43,5 @@ export interface RepositoryPersonalMetadata {
 
 export interface RepositoryRecord {
   github: ImportedRepository;
-  personal: RepositoryPersonalMetadata;
+  personal?: RepositoryPersonalMetadata | null;
 }
