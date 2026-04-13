@@ -43,6 +43,31 @@ type GitHubSessionLike = {
   } | null;
 };
 
+async function fetchViewerLogin(token: string): Promise<string> {
+  const response = await fetch("https://api.github.com/user", {
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28"
+    }
+  });
+
+  if (!response.ok) {
+    throw new GitHubSyncError(
+      `GitHub viewer request failed (${response.status})`,
+      response.status === 401 || response.status === 403 ? response.status : 502
+    );
+  }
+
+  const payload = (await response.json()) as { login?: string | null };
+
+  if (!payload.login) {
+    throw new Error("Unexpected GitHub viewer response");
+  }
+
+  return payload.login;
+}
+
 async function fetchRepositoryReadme(
   token: string,
   fullName: string
@@ -72,7 +97,7 @@ async function fetchRepositoryReadme(
 async function fetchCommitState(
   token: string,
   fullName: string,
-  ownerLogin: string,
+  viewerLogin: string,
   defaultBranch: string | null | undefined
 ): Promise<CommitState> {
   const branchQuery = defaultBranch ? `&sha=${encodeURIComponent(defaultBranch)}` : "";
@@ -92,10 +117,7 @@ async function fetchCommitState(
   }
 
   if (!response.ok) {
-    throw new GitHubSyncError(
-      `GitHub commits request failed (${response.status})`,
-      response.status === 401 || response.status === 403 ? response.status : 502
-    );
+    return "unknown";
   }
 
   const payload = (await response.json()) as Array<{
@@ -103,7 +125,11 @@ async function fetchCommitState(
     commit?: { author?: { name?: string | null; email?: string | null } | null } | null;
   }>;
 
-  return payload.some((commit) => commit.author?.login === ownerLogin) ? "yes" : "no";
+  if (payload.some((commit) => commit.author?.login === viewerLogin)) {
+    return "yes";
+  }
+
+  return payload.length === 20 ? "unknown" : "no";
 }
 
 export async function fetchForkRepositories(
@@ -116,6 +142,7 @@ export async function fetchForkRepositories(
   }
 
   const repositories: GitHubRepositoryPayload[] = [];
+  const viewerLogin = await fetchViewerLogin(token);
 
   for (let page = 1; page < 1000; page += 1) {
     const response = await fetch(
@@ -143,30 +170,41 @@ export async function fetchForkRepositories(
     }
 
     const pageRepositories = payload as GitHubRepositoryPayload[];
-    const enrichedRepositories = await Promise.all(
-      pageRepositories.map(async (repository) => {
-        if (!repository.fork) {
-          return repository;
-        }
+    const enrichedRepositories: GitHubRepositoryPayload[] = [];
 
-        const [readme, hasMyCommits] = await Promise.all([
-          fetchRepositoryReadme(token, repository.full_name),
-          fetchCommitState(
-            token,
-            repository.full_name,
-            repository.owner.login,
-            repository.default_branch
-          )
-        ]);
+    for (const repository of pageRepositories) {
+      if (!repository.fork) {
+        enrichedRepositories.push(repository);
+        continue;
+      }
 
-        return {
-          ...repository,
-          has_readme: readme ? true : repository.has_readme ?? false,
-          readme,
-          hasMyCommits
-        };
-      })
-    );
+      let readme: string | null = null;
+      let hasMyCommits: CommitState = "unknown";
+
+      try {
+        readme = await fetchRepositoryReadme(token, repository.full_name);
+      } catch {
+        readme = null;
+      }
+
+      try {
+        hasMyCommits = await fetchCommitState(
+          token,
+          repository.full_name,
+          viewerLogin,
+          repository.default_branch
+        );
+      } catch {
+        hasMyCommits = "unknown";
+      }
+
+      enrichedRepositories.push({
+        ...repository,
+        has_readme: readme ? true : repository.has_readme ?? false,
+        readme,
+        hasMyCommits
+      });
+    }
 
     repositories.push(...enrichedRepositories);
 
