@@ -45,6 +45,25 @@ describe("upsert fork repositories", () => {
     });
   });
 
+  it("rejects incomplete repository payloads without timestamps", async () => {
+    const { normalizeForkRepositories } = await import(
+      "../../../src/lib/github/repositories"
+    );
+
+    expect(() =>
+      normalizeForkRepositories([
+        {
+          id: 1,
+          fork: true,
+          full_name: "me/example",
+          owner: { login: "me" },
+          name: "example",
+          created_at: "2024-01-01T00:00:00.000Z"
+        }
+      ] as never)
+    ).toThrow("Incomplete GitHub repository payload");
+  });
+
   it("preserves personal metadata when imported fields refresh", async () => {
     const { upsertForkRepositories } = await import(
       "../../../src/lib/repos/upsert"
@@ -91,8 +110,7 @@ describe("upsert fork repositories", () => {
 
     const fakeDb = {
       repository: {
-        findUnique: async () => ({ personal: existingPersonal }),
-        upsert: async () => ({ personal: null })
+        upsert: async () => ({ personal: existingPersonal })
       }
     };
 

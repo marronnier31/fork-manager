@@ -1,8 +1,18 @@
 import type { ImportedRepository } from "../repos/types";
 import type { GitHubRepositoryPayload } from "./client";
 
-function toDate(value: string | undefined): Date {
-  return new Date(value ?? 0);
+function requireDate(value: string | undefined, field: string): Date {
+  if (!value) {
+    throw new Error(`Incomplete GitHub repository payload: missing ${field}`);
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Incomplete GitHub repository payload: invalid ${field}`);
+  }
+
+  return date;
 }
 
 export function normalizeForkRepositories(
@@ -23,8 +33,8 @@ export function normalizeForkRepositories(
       primaryLanguage: repository.language ?? null,
       stargazersCount: repository.stargazers_count ?? 0,
       forksCount: repository.forks_count ?? 0,
-      createdAt: toDate(repository.created_at),
-      updatedAt: toDate(repository.updated_at),
+      createdAt: requireDate(repository.created_at, "created_at"),
+      updatedAt: requireDate(repository.updated_at, "updated_at"),
       pushedAt: repository.pushed_at ? new Date(repository.pushed_at) : null,
       defaultBranch: repository.default_branch ?? null,
       summary: null,

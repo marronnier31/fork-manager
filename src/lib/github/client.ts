@@ -22,6 +22,16 @@ export interface GitHubRepositoryPayload {
   has_readme?: boolean;
 }
 
+export class GitHubSyncError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "GitHubSyncError";
+    this.status = status;
+  }
+}
+
 type GitHubSessionLike = {
   accessToken?: string | null;
   user?: {
@@ -35,7 +45,7 @@ export async function fetchForkRepositories(
   const token = session.accessToken ?? session.user?.accessToken;
 
   if (!token) {
-    throw new Error("Missing GitHub access token");
+    throw new GitHubSyncError("Missing GitHub access token", 401);
   }
 
   const repositories: GitHubRepositoryPayload[] = [];
@@ -53,7 +63,10 @@ export async function fetchForkRepositories(
     );
 
     if (!response.ok) {
-      throw new Error(`GitHub API request failed (${response.status})`);
+      throw new GitHubSyncError(
+        `GitHub API request failed (${response.status})`,
+        response.status === 401 || response.status === 403 ? response.status : 502
+      );
     }
 
     const payload = (await response.json()) as unknown;

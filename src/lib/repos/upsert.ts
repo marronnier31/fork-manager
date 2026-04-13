@@ -12,14 +12,6 @@ type RepositoryUpsertResult = {
 
 export interface RepositoryDatabase {
   repository: {
-    findUnique(args: {
-      where: {
-        repoId: number;
-      };
-      include?: {
-        personal: true;
-      };
-    }): Promise<RepositoryUpsertResult | null>;
     upsert(args: {
       where: {
         repoId: number;
@@ -71,11 +63,6 @@ export async function upsertForkRepositories(
   const results: RepositoryRecord[] = [];
 
   for (const repository of repositories) {
-    const existing = await client.repository.findUnique({
-      where: { repoId: repository.repoId },
-      include: { personal: true }
-    });
-
     const record = await client.repository.upsert({
       where: { repoId: repository.repoId },
       create: {
@@ -90,7 +77,7 @@ export async function upsertForkRepositories(
 
     results.push({
       github: repository,
-      personal: record.personal ?? existing?.personal ?? null
+      personal: record.personal ?? null
     });
   }
 
