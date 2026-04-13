@@ -53,9 +53,8 @@ describe("sync route", () => {
         accessToken: "token"
       }
     }));
-    const { GitHubSyncError } = await import("../../../src/lib/github/client");
     const fetchForkRepositories = vi.fn(async () => {
-      throw new GitHubSyncError("GitHub API request failed (403)", 502);
+      throw new Error("GitHub API request failed (403)");
     });
     const normalizeForkRepositories = vi.fn();
     const upsertForkRepositories = vi.fn();

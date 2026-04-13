@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import { auth } from "../../../auth";
-import {
-  fetchForkRepositories,
-  GitHubSyncError
-} from "../../../lib/github/client";
+import { fetchForkRepositories } from "../../../lib/github/client";
 import { normalizeForkRepositories } from "../../../lib/github/repositories";
 import { upsertForkRepositories } from "../../../lib/repos/upsert";
 
+type SyncSession = {
+  accessToken?: string;
+  user?: {
+    accessToken?: string;
+  } | null;
+} | null;
+
 export async function POST() {
-  const session = await auth();
+  const session = (await auth()) as SyncSession;
   const accessToken = session?.accessToken ?? session?.user?.accessToken;
 
   if (!session?.user || !accessToken) {
@@ -22,13 +26,6 @@ export async function POST() {
 
     return NextResponse.json({ count: upsertedRepositories.length });
   } catch (error) {
-    if (error instanceof GitHubSyncError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.status }
-      );
-    }
-
     return NextResponse.json({ error: "GitHub sync failed" }, { status: 502 });
   }
 }

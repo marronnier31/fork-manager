@@ -27,7 +27,15 @@ describe("auth config", () => {
     vi.resetModules();
 
     const { authConfig } = await import("../../../src/auth");
-    const provider = authConfig.providers[0];
+    const provider = authConfig.providers[0] as {
+      id?: string;
+      type?: string;
+      name?: string;
+      options?: {
+        clientId?: string;
+        clientSecret?: string;
+      };
+    };
 
     expect(authConfig.providers).toHaveLength(1);
     expect(provider.id).toBe("github");
