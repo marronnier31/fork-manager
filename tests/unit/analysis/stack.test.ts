@@ -11,4 +11,10 @@ describe("detectStackHints", () => {
       "Prisma"
     ]);
   });
+
+  it("does not match React inside Preact", async () => {
+    const { detectStackHints } = await import("../../../src/lib/analysis/stack");
+
+    expect(detectStackHints("Preact app")).not.toContain("React");
+  });
 });

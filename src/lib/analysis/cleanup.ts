@@ -20,16 +20,20 @@ export function scoreCleanupCandidate(
 ): CleanupCandidateResult {
   const now = Date.now();
   const reasons: string[] = [];
+  const normalizedNote = input.note?.trim() ?? "";
+  const normalizedTags = input.tags
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0);
 
   if (now - input.updatedAt.getTime() > SIX_MONTHS_IN_MS) {
     reasons.push("No recent updates");
   }
 
-  if (!input.note) {
+  if (!normalizedNote) {
     reasons.push("No personal note");
   }
 
-  if (input.tags.length === 0) {
+  if (normalizedTags.length === 0) {
     reasons.push("No tags");
   }
 
