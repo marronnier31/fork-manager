@@ -41,8 +41,15 @@ describe("upsert fork repositories", () => {
       repoId: 1,
       fullName: "me/example",
       isFork: true,
-      parentFullName: "upstream/example"
+      parentFullName: "upstream/example",
+      summary: "updated description",
+      techStack: ["TypeScript"],
+      category: "typescript",
+      readmeExcerpt: "updated description",
+      activityScore: 15
     });
+    expect(normalized[0].analyzedAt).toBeInstanceOf(Date);
+    expect(normalized[0].cleanupReasons.length).toBeGreaterThan(0);
   });
 
   it("rejects incomplete repository payloads without timestamps", async () => {

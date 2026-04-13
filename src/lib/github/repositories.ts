@@ -1,5 +1,9 @@
 import type { ImportedRepository } from "../repos/types";
 import type { GitHubRepositoryPayload } from "./client";
+import { scoreCleanupCandidate } from "../analysis/cleanup";
+import { detectStackHints } from "../analysis/stack";
+import { summarizeRepository } from "../analysis/summary";
+import { extractReadmeExcerpt } from "./readme";
 
 function requireDate(value: string | undefined, field: string): Date {
   if (!value) {
@@ -20,32 +24,51 @@ export function normalizeForkRepositories(
 ): ImportedRepository[] {
   return payload
     .filter((repository) => repository.fork)
-    .map((repository) => ({
-      repoId: repository.id,
-      owner: repository.owner.login,
-      name: repository.name,
-      fullName: repository.full_name,
-      htmlUrl: repository.html_url ?? "",
-      description: repository.description ?? null,
-      isFork: true,
-      parentFullName: repository.parent?.full_name ?? null,
-      topics: repository.topics ?? [],
-      primaryLanguage: repository.language ?? null,
-      stargazersCount: repository.stargazers_count ?? 0,
-      forksCount: repository.forks_count ?? 0,
-      createdAt: requireDate(repository.created_at, "created_at"),
-      updatedAt: requireDate(repository.updated_at, "updated_at"),
-      pushedAt: repository.pushed_at ? new Date(repository.pushed_at) : null,
-      defaultBranch: repository.default_branch ?? null,
-      summary: null,
-      techStack: [],
-      category: null,
-      hasReadme: repository.has_readme ?? false,
-      readmeExcerpt: null,
-      analyzedAt: null,
-      activityScore: null,
-      cleanupReasons: [],
-      isLikelyAbandoned: false,
-      hasMyCommits: "unknown"
-    }));
+    .map((repository) => {
+      const description = repository.description ?? null;
+      const topics = repository.topics ?? [];
+      const primaryLanguage = repository.language ?? null;
+      const analysisText = [description, topics.join(" "), primaryLanguage]
+        .filter((value): value is string => Boolean(value && value.trim()))
+        .join(" ");
+      const summary = summarizeRepository({ description });
+      const cleanup = scoreCleanupCandidate({
+        updatedAt: requireDate(repository.updated_at, "updated_at"),
+        hasMyCommits: "unknown",
+        note: null,
+        tags: [],
+        isFavorite: false,
+        lastReviewedAt: null
+      });
+
+      return {
+        repoId: repository.id,
+        owner: repository.owner.login,
+        name: repository.name,
+        fullName: repository.full_name,
+        htmlUrl: repository.html_url ?? "",
+        description,
+        isFork: true,
+        parentFullName: repository.parent?.full_name ?? null,
+        topics,
+        primaryLanguage,
+        stargazersCount: repository.stargazers_count ?? 0,
+        forksCount: repository.forks_count ?? 0,
+        createdAt: requireDate(repository.created_at, "created_at"),
+        updatedAt: requireDate(repository.updated_at, "updated_at"),
+        pushedAt: repository.pushed_at ? new Date(repository.pushed_at) : null,
+        defaultBranch: repository.default_branch ?? null,
+        summary,
+        techStack: detectStackHints(analysisText),
+        category: topics[0] ?? primaryLanguage,
+        hasReadme: repository.has_readme ?? false,
+        readmeExcerpt: description ? extractReadmeExcerpt(description, 120) : null,
+        analyzedAt: new Date(),
+        activityScore:
+          (repository.stargazers_count ?? 0) + (repository.forks_count ?? 0),
+        cleanupReasons: cleanup.reasons,
+        isLikelyAbandoned: cleanup.isCandidate,
+        hasMyCommits: "unknown"
+      };
+    });
 }

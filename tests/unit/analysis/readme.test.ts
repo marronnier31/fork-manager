@@ -13,4 +13,17 @@ describe("normalizeReadmeText", () => {
     expect(normalized).toContain("Read the guide for more.");
     expect(normalized).not.toContain("guide)");
   });
+
+  it("removes image markdown cleanly when the image URL contains parentheses", async () => {
+    const { normalizeReadmeText } = await import(
+      "../../../src/lib/github/readme"
+    );
+
+    const normalized = normalizeReadmeText(
+      "See ![diagram](https://example.com/a(b).png) and [guide](https://example.com/x(y))."
+    );
+
+    expect(normalized).toContain("See and guide.");
+    expect(normalized).not.toContain(".png)");
+  });
 });

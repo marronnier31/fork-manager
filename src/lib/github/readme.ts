@@ -2,23 +2,30 @@ function collapseWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function replaceMarkdownLinks(value: string): string {
+function replaceMarkdownLinks(value: string, prefix: "[" | "!["): string {
   let result = "";
 
   for (let index = 0; index < value.length; index += 1) {
-    if (value[index] !== "[") {
+    if (prefix === "![" && value.slice(index, index + 2) !== "![") {
       result += value[index];
       continue;
     }
 
+    if (prefix === "[" && value[index] !== "[") {
+      result += value[index];
+      continue;
+    }
+
+    const markerLength = prefix.length;
+    const labelStart = index + markerLength;
     const labelEnd = value.indexOf("](", index);
 
-    if (labelEnd === -1) {
+    if (labelEnd === -1 || labelEnd < labelStart) {
       result += value[index];
       continue;
     }
 
-    const label = value.slice(index + 1, labelEnd);
+    const label = value.slice(labelStart, labelEnd);
     let cursor = labelEnd + 2;
     let depth = 1;
 
@@ -37,7 +44,7 @@ function replaceMarkdownLinks(value: string): string {
       continue;
     }
 
-    result += label;
+    result += prefix === "![" ? " " : label;
     index = cursor - 1;
   }
 
@@ -47,12 +54,15 @@ function replaceMarkdownLinks(value: string): string {
 export function normalizeReadmeText(readme: string): string {
   return collapseWhitespace(
     replaceMarkdownLinks(
-      readme
-      .replace(/```[\s\S]*?```/g, " ")
-      .replace(/!\[[^\]]*\]\([^)]+\)/g, " ")
-      .replace(/^#{1,6}\s+/gm, "")
-      .replace(/^\s*[-*+]\s+/gm, "")
-      .replace(/[`*_~]/g, " ")
+      replaceMarkdownLinks(
+        readme
+          .replace(/```[\s\S]*?```/g, " ")
+          .replace(/^#{1,6}\s+/gm, "")
+          .replace(/^\s*[-*+]\s+/gm, "")
+          .replace(/[`*_~]/g, " "),
+        "!["
+      ),
+      "["
     )
   );
 }
