@@ -105,4 +105,46 @@ describe("fetchForkRepositories", () => {
       hasMyCommits: "unknown"
     });
   });
+
+  it("degrades commit enrichment when viewer login lookup fails", async () => {
+    const { fetchForkRepositories } = await import(
+      "../../../src/lib/github/client"
+    );
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("boom", { status: 500 }))
+      .mockResolvedValueOnce(
+        jsonResponse([
+          {
+            id: 1,
+            fork: true,
+            full_name: "marro/example",
+            owner: { login: "workspace-owner" },
+            name: "example",
+            html_url: "https://github.com/marro/example",
+            description: "Example repository",
+            topics: [],
+            language: "TypeScript",
+            stargazers_count: 0,
+            forks_count: 0,
+            created_at: "2024-01-01T00:00:00Z",
+            updated_at: "2024-01-02T00:00:00Z",
+            pushed_at: "2024-01-03T00:00:00Z",
+            default_branch: "main"
+          }
+        ])
+      )
+      .mockResolvedValueOnce(new Response("# Example README", { status: 200 }));
+
+    global.fetch = fetchMock as typeof fetch;
+
+    const repositories = await fetchForkRepositories({ accessToken: "token" });
+
+    expect(repositories[0]).toMatchObject({
+      full_name: "marro/example",
+      readme: "# Example README",
+      hasMyCommits: "unknown"
+    });
+  });
 });

@@ -37,10 +37,10 @@ export function normalizeForkRepositories(
       const cleanup = scoreCleanupCandidate({
         updatedAt: requireDate(repository.updated_at, "updated_at"),
         hasMyCommits,
-        note: null,
-        tags: [],
-        isFavorite: false,
-        lastReviewedAt: null
+        note: "imported",
+        tags: ["imported"],
+        isFavorite: true,
+        lastReviewedAt: new Date()
       });
 
       return {

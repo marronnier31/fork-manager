@@ -142,7 +142,13 @@ export async function fetchForkRepositories(
   }
 
   const repositories: GitHubRepositoryPayload[] = [];
-  const viewerLogin = await fetchViewerLogin(token);
+  let viewerLogin: string | null = null;
+
+  try {
+    viewerLogin = await fetchViewerLogin(token);
+  } catch {
+    viewerLogin = null;
+  }
 
   for (let page = 1; page < 1000; page += 1) {
     const response = await fetch(
@@ -187,15 +193,17 @@ export async function fetchForkRepositories(
         readme = null;
       }
 
-      try {
-        hasMyCommits = await fetchCommitState(
-          token,
-          repository.full_name,
-          viewerLogin,
-          repository.default_branch
-        );
-      } catch {
-        hasMyCommits = "unknown";
+      if (viewerLogin) {
+        try {
+          hasMyCommits = await fetchCommitState(
+            token,
+            repository.full_name,
+            viewerLogin,
+            repository.default_branch
+          );
+        } catch {
+          hasMyCommits = "unknown";
+        }
       }
 
       enrichedRepositories.push({
