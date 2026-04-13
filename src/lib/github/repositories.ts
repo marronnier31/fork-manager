@@ -26,15 +26,17 @@ export function normalizeForkRepositories(
     .filter((repository) => repository.fork)
     .map((repository) => {
       const description = repository.description ?? null;
+      const readme = repository.readme ?? null;
       const topics = repository.topics ?? [];
       const primaryLanguage = repository.language ?? null;
-      const analysisText = [description, topics.join(" "), primaryLanguage]
+      const hasMyCommits = repository.hasMyCommits ?? "unknown";
+      const analysisText = [description, readme, topics.join(" "), primaryLanguage]
         .filter((value): value is string => Boolean(value && value.trim()))
         .join(" ");
-      const summary = summarizeRepository({ description });
+      const summary = summarizeRepository({ description, readme });
       const cleanup = scoreCleanupCandidate({
         updatedAt: requireDate(repository.updated_at, "updated_at"),
-        hasMyCommits: "unknown",
+        hasMyCommits,
         note: null,
         tags: [],
         isFavorite: false,
@@ -61,14 +63,14 @@ export function normalizeForkRepositories(
         summary,
         techStack: detectStackHints(analysisText),
         category: topics[0] ?? primaryLanguage,
-        hasReadme: repository.has_readme ?? false,
-        readmeExcerpt: description ? extractReadmeExcerpt(description, 120) : null,
+        hasReadme: Boolean(readme?.trim()) || (repository.has_readme ?? false),
+        readmeExcerpt: readme ? extractReadmeExcerpt(readme, 120) : null,
         analyzedAt: new Date(),
         activityScore:
           (repository.stargazers_count ?? 0) + (repository.forks_count ?? 0),
         cleanupReasons: cleanup.reasons,
         isLikelyAbandoned: cleanup.isCandidate,
-        hasMyCommits: "unknown"
+        hasMyCommits
       };
     });
 }

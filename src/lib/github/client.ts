@@ -1,3 +1,5 @@
+import type { CommitState } from "../repos/types";
+
 export interface GitHubRepositoryPayload {
   id: number;
   fork: boolean;
@@ -20,6 +22,8 @@ export interface GitHubRepositoryPayload {
   pushed_at?: string | null;
   default_branch?: string | null;
   has_readme?: boolean;
+  readme?: string | null;
+  hasMyCommits?: CommitState;
 }
 
 export class GitHubSyncError extends Error {
@@ -38,6 +42,69 @@ type GitHubSessionLike = {
     accessToken?: string | null;
   } | null;
 };
+
+async function fetchRepositoryReadme(
+  token: string,
+  fullName: string
+): Promise<string | null> {
+  const response = await fetch(`https://api.github.com/repos/${fullName}/readme`, {
+    headers: {
+      Accept: "application/vnd.github.raw+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28"
+    }
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new GitHubSyncError(
+      `GitHub README request failed (${response.status})`,
+      response.status === 401 || response.status === 403 ? response.status : 502
+    );
+  }
+
+  return response.text();
+}
+
+async function fetchCommitState(
+  token: string,
+  fullName: string,
+  ownerLogin: string,
+  defaultBranch: string | null | undefined
+): Promise<CommitState> {
+  const branchQuery = defaultBranch ? `&sha=${encodeURIComponent(defaultBranch)}` : "";
+  const response = await fetch(
+    `https://api.github.com/repos/${fullName}/commits?per_page=20${branchQuery}`,
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "X-GitHub-Api-Version": "2022-11-28"
+      }
+    }
+  );
+
+  if (response.status === 404 || response.status === 409) {
+    return "unknown";
+  }
+
+  if (!response.ok) {
+    throw new GitHubSyncError(
+      `GitHub commits request failed (${response.status})`,
+      response.status === 401 || response.status === 403 ? response.status : 502
+    );
+  }
+
+  const payload = (await response.json()) as Array<{
+    author?: { login?: string | null } | null;
+    commit?: { author?: { name?: string | null; email?: string | null } | null } | null;
+  }>;
+
+  return payload.some((commit) => commit.author?.login === ownerLogin) ? "yes" : "no";
+}
 
 export async function fetchForkRepositories(
   session: GitHubSessionLike
@@ -75,7 +142,33 @@ export async function fetchForkRepositories(
       throw new Error("Unexpected GitHub API response");
     }
 
-    repositories.push(...(payload as GitHubRepositoryPayload[]));
+    const pageRepositories = payload as GitHubRepositoryPayload[];
+    const enrichedRepositories = await Promise.all(
+      pageRepositories.map(async (repository) => {
+        if (!repository.fork) {
+          return repository;
+        }
+
+        const [readme, hasMyCommits] = await Promise.all([
+          fetchRepositoryReadme(token, repository.full_name),
+          fetchCommitState(
+            token,
+            repository.full_name,
+            repository.owner.login,
+            repository.default_branch
+          )
+        ]);
+
+        return {
+          ...repository,
+          has_readme: readme ? true : repository.has_readme ?? false,
+          readme,
+          hasMyCommits
+        };
+      })
+    );
+
+    repositories.push(...enrichedRepositories);
 
     if (payload.length < 100) {
       break;

@@ -25,7 +25,9 @@ describe("upsert fork repositories", () => {
         updated_at: "2024-02-01T00:00:00.000Z",
         pushed_at: "2024-02-02T00:00:00.000Z",
         default_branch: "main",
-        has_readme: true
+        has_readme: true,
+        readme: "# Example\nBuilt with Next.js and Prisma",
+        hasMyCommits: "no"
       },
       {
         id: 2,
@@ -42,12 +44,15 @@ describe("upsert fork repositories", () => {
       fullName: "me/example",
       isFork: true,
       parentFullName: "upstream/example",
-      summary: "updated description",
-      techStack: ["TypeScript"],
+      summary: "updated description. Example Built with Next.js and Prisma",
       category: "typescript",
-      readmeExcerpt: "updated description",
-      activityScore: 15
+      readmeExcerpt: "Example Built with Next.js and Prisma",
+      activityScore: 15,
+      hasMyCommits: "no"
     });
+    expect(normalized[0].techStack).toEqual(
+      expect.arrayContaining(["Next.js", "Prisma", "TypeScript"])
+    );
     expect(normalized[0].analyzedAt).toBeInstanceOf(Date);
     expect(normalized[0].cleanupReasons.length).toBeGreaterThan(0);
   });
