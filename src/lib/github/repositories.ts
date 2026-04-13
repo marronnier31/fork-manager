@@ -42,6 +42,9 @@ export function normalizeForkRepositories(
         isFavorite: true,
         lastReviewedAt: new Date()
       });
+      const importedCleanupReasons = cleanup.reasons.filter(
+        (reason) => reason === "No recent updates" || reason === "No user commits"
+      );
 
       return {
         repoId: repository.id,
@@ -68,8 +71,8 @@ export function normalizeForkRepositories(
         analyzedAt: new Date(),
         activityScore:
           (repository.stargazers_count ?? 0) + (repository.forks_count ?? 0),
-        cleanupReasons: cleanup.reasons,
-        isLikelyAbandoned: cleanup.isCandidate,
+        cleanupReasons: importedCleanupReasons,
+        isLikelyAbandoned: importedCleanupReasons.length >= 2,
         hasMyCommits
       };
     });

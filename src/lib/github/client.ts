@@ -43,6 +43,8 @@ type GitHubSessionLike = {
   } | null;
 };
 
+const ENRICHMENT_CONCURRENCY = 5;
+
 async function fetchViewerLogin(token: string): Promise<string> {
   const response = await fetch("https://api.github.com/user", {
     headers: {
@@ -129,6 +131,10 @@ async function fetchCommitState(
     return "yes";
   }
 
+  if (payload.some((commit) => commit.author === null)) {
+    return "unknown";
+  }
+
   return payload.length === 20 ? "unknown" : "no";
 }
 
@@ -178,40 +184,53 @@ export async function fetchForkRepositories(
     const pageRepositories = payload as GitHubRepositoryPayload[];
     const enrichedRepositories: GitHubRepositoryPayload[] = [];
 
-    for (const repository of pageRepositories) {
-      if (!repository.fork) {
-        enrichedRepositories.push(repository);
-        continue;
-      }
+    for (
+      let chunkIndex = 0;
+      chunkIndex < pageRepositories.length;
+      chunkIndex += ENRICHMENT_CONCURRENCY
+    ) {
+      const chunk = pageRepositories.slice(
+        chunkIndex,
+        chunkIndex + ENRICHMENT_CONCURRENCY
+      );
+      const enrichedChunk = await Promise.all(
+        chunk.map(async (repository) => {
+          if (!repository.fork) {
+            return repository;
+          }
 
-      let readme: string | null = null;
-      let hasMyCommits: CommitState = "unknown";
+          let readme: string | null = null;
+          let hasMyCommits: CommitState = "unknown";
 
-      try {
-        readme = await fetchRepositoryReadme(token, repository.full_name);
-      } catch {
-        readme = null;
-      }
+          try {
+            readme = await fetchRepositoryReadme(token, repository.full_name);
+          } catch {
+            readme = null;
+          }
 
-      if (viewerLogin) {
-        try {
-          hasMyCommits = await fetchCommitState(
-            token,
-            repository.full_name,
-            viewerLogin,
-            repository.default_branch
-          );
-        } catch {
-          hasMyCommits = "unknown";
-        }
-      }
+          if (viewerLogin) {
+            try {
+              hasMyCommits = await fetchCommitState(
+                token,
+                repository.full_name,
+                viewerLogin,
+                repository.default_branch
+              );
+            } catch {
+              hasMyCommits = "unknown";
+            }
+          }
 
-      enrichedRepositories.push({
-        ...repository,
-        has_readme: readme ? true : repository.has_readme ?? false,
-        readme,
-        hasMyCommits
-      });
+          return {
+            ...repository,
+            has_readme: readme ? true : repository.has_readme ?? false,
+            readme,
+            hasMyCommits
+          };
+        })
+      );
+
+      enrichedRepositories.push(...enrichedChunk);
     }
 
     repositories.push(...enrichedRepositories);

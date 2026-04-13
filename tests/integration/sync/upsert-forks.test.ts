@@ -55,7 +55,7 @@ describe("upsert fork repositories", () => {
     );
     expect(normalized[0].analyzedAt).toBeInstanceOf(Date);
     expect(normalized[0].cleanupReasons).toEqual(["No recent updates", "No user commits"]);
-    expect(normalized[0].isLikelyAbandoned).toBe(false);
+    expect(normalized[0].isLikelyAbandoned).toBe(true);
   });
 
   it("rejects incomplete repository payloads without timestamps", async () => {
