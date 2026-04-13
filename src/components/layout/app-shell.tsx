@@ -17,8 +17,6 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
         </div>
         <nav className="app-shell__nav" aria-label="Primary">
           <a href="/dashboard">Dashboard</a>
-          <a href="/repos">Repos</a>
-          <a href="/cleanup">Cleanup</a>
         </nav>
       </header>
       <main className="app-shell__content">{children}</main>

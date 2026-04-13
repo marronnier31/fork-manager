@@ -16,6 +16,7 @@ describe("dashboard repository stats", () => {
     vi.setSystemTime(new Date("2026-04-13T00:00:00.000Z"));
     findMany.mockResolvedValue([
       {
+        isFork: true,
         updatedAt: new Date("2026-04-08T00:00:00.000Z"),
         isLikelyAbandoned: false,
         personal: {
@@ -25,6 +26,7 @@ describe("dashboard repository stats", () => {
         }
       },
       {
+        isFork: true,
         updatedAt: new Date("2026-03-01T00:00:00.000Z"),
         isLikelyAbandoned: true,
         personal: {
@@ -34,9 +36,20 @@ describe("dashboard repository stats", () => {
         }
       },
       {
+        isFork: true,
         updatedAt: new Date("2026-02-01T00:00:00.000Z"),
         isLikelyAbandoned: true,
         personal: null
+      },
+      {
+        isFork: false,
+        updatedAt: new Date("2026-04-12T00:00:00.000Z"),
+        isLikelyAbandoned: true,
+        personal: {
+          status: "active",
+          note: "non-fork",
+          isFavorite: true
+        }
       }
     ]);
   });
