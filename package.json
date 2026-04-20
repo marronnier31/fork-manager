@@ -5,7 +5,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "vitest run"
+    "test": "vitest run --pool threads",
+    "test:e2e": "vitest run tests/e2e/repos.spec.ts --pool threads"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",

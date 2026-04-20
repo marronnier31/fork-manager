@@ -3,9 +3,9 @@ import { db } from "../../../../lib/db";
 import type { RepoStatus } from "../../../../lib/repos/types";
 
 type RouteParams = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 type PersonalPayload = {
@@ -76,12 +76,13 @@ function buildPersonalMutation(payload: PersonalPayload) {
 }
 
 export async function PATCH(request: Request, { params }: RouteParams) {
+  const { id } = await Promise.resolve(params);
   const payload = (await request.json()) as PersonalPayload;
   const personal = buildPersonalMutation(payload);
 
   try {
     const updatedRepository = await db.repository.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         personal: {
           upsert: {

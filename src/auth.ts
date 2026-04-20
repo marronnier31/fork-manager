@@ -2,28 +2,24 @@ import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 import type { DefaultSession, NextAuthConfig } from "next-auth";
 
-function requireEnv(name: "GITHUB_CLIENT_ID" | "GITHUB_CLIENT_SECRET") {
-  const value = process.env[name];
-
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-
-  return value;
-}
+const githubClientId = process.env.GITHUB_CLIENT_ID;
+const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
+const hasGitHubCredentials = Boolean(githubClientId && githubClientSecret);
 
 export const authConfig: NextAuthConfig = {
-  providers: [
-    GitHub({
-      clientId: requireEnv("GITHUB_CLIENT_ID"),
-      clientSecret: requireEnv("GITHUB_CLIENT_SECRET"),
-      authorization: {
-        params: {
-          scope: "read:user user:email repo"
-        }
-      }
-    })
-  ],
+  providers: hasGitHubCredentials
+    ? [
+        GitHub({
+          clientId: githubClientId!,
+          clientSecret: githubClientSecret!,
+          authorization: {
+            params: {
+              scope: "read:user user:email repo"
+            }
+          }
+        })
+      ]
+    : [],
   callbacks: {
     async jwt({ token, account }) {
       const authToken = token as { accessToken?: string };

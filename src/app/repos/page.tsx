@@ -1,6 +1,11 @@
 import { ReposPageView } from "../../components/repos/repos-page";
 import { listRepositories, type ListRepositoriesFilters } from "../../lib/repos/queries";
 type SearchParams = Record<string, string | string[] | undefined>;
+type ReposPageProps = {
+  searchParams?: Promise<SearchParams>;
+};
+
+export const dynamic = "force-dynamic";
 
 const REPO_STATUSES = new Set(["active", "watching", "archive", "cleanup", "all"]);
 const COMMIT_FILTERS = new Set(["yes", "no", "unknown", "all"]);
@@ -21,16 +26,15 @@ function normalizeCommits(value: string): ListRepositoriesFilters["commits"] {
   return COMMIT_FILTERS.has(value) ? (value as ListRepositoriesFilters["commits"]) : "all";
 }
 
-export default async function ReposPage({
-  searchParams = {}
-}: {
-  searchParams?: SearchParams;
-} = {}) {
+export default async function ReposPage({ searchParams }: ReposPageProps) {
+  const resolvedSearchParams = (await Promise.resolve(
+    searchParams ?? ({} as SearchParams)
+  )) as SearchParams;
   const normalizedSearchParams = {
-    search: firstParam(searchParams.search),
-    status: normalizeStatus(firstParam(searchParams.status)),
-    commits: normalizeCommits(firstParam(searchParams.commits)),
-    tag: firstParam(searchParams.tag)
+    search: firstParam(resolvedSearchParams.search),
+    status: normalizeStatus(firstParam(resolvedSearchParams.status)),
+    commits: normalizeCommits(firstParam(resolvedSearchParams.commits)),
+    tag: firstParam(resolvedSearchParams.tag)
   };
   const repositories = await listRepositories(normalizedSearchParams);
 

@@ -3,10 +3,12 @@ import { AppShell } from "../../../components/layout/app-shell";
 import { RepoDetailCard } from "../../../components/repos/repo-detail-card";
 import { db } from "../../../lib/db";
 
+export const dynamic = "force-dynamic";
+
 type PageParams = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 function parseStringArray(value: string | null | undefined) {
@@ -27,8 +29,9 @@ function parseNullableDate(value: Date | null | undefined) {
 }
 
 export default async function RepoDetailPage({ params }: PageParams) {
+  const { id } = await Promise.resolve(params);
   const repository = await db.repository.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { personal: true }
   });
 

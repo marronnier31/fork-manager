@@ -3,9 +3,9 @@ import { db } from "../../../../../lib/db";
 import type { RepoStatus } from "../../../../../lib/repos/types";
 
 type RouteParams = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 type PersonalState = {
@@ -44,8 +44,9 @@ function buildPersonalState(existing: PersonalState | null, nextFavorite: boolea
 }
 
 export async function POST(request: Request, { params }: RouteParams) {
+  const { id } = await Promise.resolve(params);
   const repository = await db.repository.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { personal: true }
   });
 
@@ -69,7 +70,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   const personal = buildPersonalState(repository.personal as PersonalState | null, nextFavorite);
 
   const updatedRepository = await db.repository.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       personal: {
         upsert: {

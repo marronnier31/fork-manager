@@ -3,6 +3,23 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const originalGitHubClientId = process.env.GITHUB_CLIENT_ID;
 const originalGitHubClientSecret = process.env.GITHUB_CLIENT_SECRET;
 
+vi.mock("next-auth", () => ({
+  default: (config: unknown) => ({
+    handlers: {},
+    auth: vi.fn(),
+    config
+  })
+}));
+
+vi.mock("next-auth/providers/github", () => ({
+  default: (options: Record<string, unknown>) => ({
+    id: "github",
+    type: "oauth",
+    name: "GitHub",
+    options
+  })
+}));
+
 afterEach(() => {
   if (originalGitHubClientId === undefined) {
     delete process.env.GITHUB_CLIENT_ID;
@@ -53,8 +70,8 @@ describe("auth config", () => {
 
     vi.resetModules();
 
-    await expect(import("../../../src/auth")).rejects.toThrow(
-      "Missing required environment variable: GITHUB_CLIENT_ID"
-    );
+    const { authConfig } = await import("../../../src/auth");
+
+    expect(authConfig.providers).toEqual([]);
   });
 });
