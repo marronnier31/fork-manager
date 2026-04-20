@@ -321,6 +321,11 @@ a {
   line-height: 1.4;
 }
 
+.repo-table__links a {
+  font-size: 14px;
+  color: var(--accent);
+}
+
 .repo-table__summary {
   font-size: 14px;
 }

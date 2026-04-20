@@ -8,6 +8,7 @@ describe("repositories page", () => {
       ReposPageView({
         repositories: [
           {
+            id: "repo-1",
             repoId: 1,
             owner: "acme",
             name: "fork-manager",
@@ -45,6 +46,7 @@ describe("repositories page", () => {
             }
           },
           {
+            id: "repo-2",
             repoId: 2,
             owner: "acme",
             name: "starter-kit",
@@ -91,10 +93,13 @@ describe("repositories page", () => {
     expect(markup).toContain("My commits");
     expect(markup).toContain("Tag");
     expect(markup).toContain("Sync GitHub");
+    expect(markup).toContain("Cleanup Queue");
     expect(markup).toContain("acme/fork-manager");
     expect(markup).toContain("Active");
     expect(markup).toContain("Has my commits");
     expect(markup).toContain("Tags: priority");
+    expect(markup).toContain('href="/repos/repo-1"');
+    expect(markup).toContain("Open on GitHub");
   });
 
   it("filters repositories by search, status, commit state, and tag", async () => {
@@ -103,6 +108,7 @@ describe("repositories page", () => {
       ReposPageView({
         repositories: [
           {
+            id: "repo-1",
             repoId: 1,
             owner: "acme",
             name: "fork-manager",
@@ -140,6 +146,7 @@ describe("repositories page", () => {
             }
           },
           {
+            id: "repo-2",
             repoId: 2,
             owner: "acme",
             name: "starter-kit",

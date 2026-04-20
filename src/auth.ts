@@ -6,6 +6,12 @@ const githubClientId = process.env.GITHUB_CLIENT_ID;
 const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
 const hasGitHubCredentials = Boolean(githubClientId && githubClientSecret);
 
+if (!hasGitHubCredentials) {
+  console.warn(
+    "GitHub auth disabled: set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to enable sign-in."
+  );
+}
+
 export const authConfig: NextAuthConfig = {
   providers: hasGitHubCredentials
     ? [

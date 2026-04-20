@@ -85,7 +85,9 @@ export function RepoTable({ repositories }: RepoTableProps) {
             <tr key={repository.repoId}>
               <td>
                 <div className="repo-table__repo">
-                  <a href={repository.htmlUrl}>{repository.fullName}</a>
+                  <a href={repository.id ? `/repos/${repository.id}` : repository.htmlUrl}>
+                    {repository.fullName}
+                  </a>
                   {repository.description ? (
                     <p>{repository.description}</p>
                   ) : (
@@ -94,6 +96,9 @@ export function RepoTable({ repositories }: RepoTableProps) {
                   {repository.summary ? (
                     <p className="repo-table__summary">{repository.summary}</p>
                   ) : null}
+                  <p className="repo-table__links">
+                    <a href={repository.htmlUrl}>Open on GitHub</a>
+                  </p>
                 </div>
               </td>
               <td>

@@ -69,9 +69,14 @@ describe("auth config", () => {
     delete process.env.GITHUB_CLIENT_SECRET;
 
     vi.resetModules();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const { authConfig } = await import("../../../src/auth");
 
     expect(authConfig.providers).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(
+      "GitHub auth disabled: set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to enable sign-in."
+    );
+    warn.mockRestore();
   });
 });
