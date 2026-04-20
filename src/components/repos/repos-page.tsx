@@ -7,6 +7,8 @@ import { SyncButton } from "./sync-button";
 type SearchParams = {
   search?: string;
   status?: string;
+  commits?: string;
+  tag?: string;
 };
 
 type ReposPageProps = {
@@ -34,11 +36,14 @@ function matchesSearch(repository: RepoTableRow, search: string) {
   const haystack = [
     repository.fullName,
     repository.description,
+    repository.summary,
+    repository.readmeExcerpt,
     repository.personal?.note,
     repository.primaryLanguage,
     repository.category,
     repository.techStack.join(" "),
-    repository.topics.join(" ")
+    repository.topics.join(" "),
+    repository.personal?.tags.join(" ")
   ]
     .filter((value): value is string => Boolean(value))
     .join(" ")
@@ -47,15 +52,35 @@ function matchesSearch(repository: RepoTableRow, search: string) {
   return haystack.includes(search);
 }
 
+function matchesCommitState(repository: RepoTableRow, commits: string) {
+  if (!commits || commits === "all") {
+    return true;
+  }
+
+  return repository.hasMyCommits === commits;
+}
+
+function matchesTag(repository: RepoTableRow, tag: string) {
+  if (!tag) {
+    return true;
+  }
+
+  return repository.personal?.tags.some((value) => value.toLowerCase().includes(tag)) ?? false;
+}
+
 export function ReposPageView({
   repositories,
   searchParams = {}
 }: ReposPageProps) {
   const search = normalizeSearch(searchParams.search ?? "");
   const status = searchParams.status ?? "all";
+  const commits = searchParams.commits ?? "all";
+  const tag = normalizeSearch(searchParams.tag ?? "");
   const filteredRepositories = repositories
     .filter((repository) => repository.isFork)
     .filter((repository) => matchesStatus(repository, status))
+    .filter((repository) => matchesCommitState(repository, commits))
+    .filter((repository) => matchesTag(repository, tag))
     .filter((repository) => matchesSearch(repository, search));
 
   return (
@@ -65,7 +90,12 @@ export function ReposPageView({
     >
       <section className="repos-page">
         <div className="repos-page__toolbar">
-          <RepoFilters search={searchParams.search ?? ""} status={status} />
+          <RepoFilters
+            search={searchParams.search ?? ""}
+            status={status}
+            commits={commits}
+            tag={searchParams.tag ?? ""}
+          />
           <SyncButton />
         </div>
         <RepoTable repositories={filteredRepositories} />

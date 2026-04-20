@@ -1,20 +1,8 @@
 import React from "react";
-import type { ImportedRepository } from "../../lib/repos/types";
+import type { ListedRepository } from "../../lib/repos/queries";
 import { Badge } from "../ui/badge";
 
-export type RepoTableRow = ImportedRepository & {
-  personal:
-    | {
-        status: "active" | "watching" | "archive" | "cleanup";
-        tags: string;
-        note: string | null;
-        savedReason: string | null;
-        reviewLaterAt: Date | null;
-        isFavorite: boolean;
-        lastReviewedAt: Date | null;
-      }
-    | null;
-};
+export type RepoTableRow = ListedRepository;
 
 type RepoTableProps = {
   repositories: RepoTableRow[];
@@ -53,6 +41,28 @@ function statusTone(status: RepoStatus | undefined) {
   }
 }
 
+function commitBadgeTone(state: RepoTableRow["hasMyCommits"]) {
+  switch (state) {
+    case "yes":
+      return "success";
+    case "no":
+      return "warning";
+    default:
+      return "neutral";
+  }
+}
+
+function commitLabel(state: RepoTableRow["hasMyCommits"]) {
+  switch (state) {
+    case "yes":
+      return "Has my commits";
+    case "no":
+      return "No personal commits";
+    default:
+      return "Commit state unknown";
+  }
+}
+
 export function RepoTable({ repositories }: RepoTableProps) {
   if (repositories.length === 0) {
     return <p className="repo-table__empty">No repositories match these filters.</p>;
@@ -65,7 +75,7 @@ export function RepoTable({ repositories }: RepoTableProps) {
           <tr>
             <th scope="col">Repository</th>
             <th scope="col">Status</th>
-            <th scope="col">Stars</th>
+            <th scope="col">Signals</th>
             <th scope="col">Updated</th>
             <th scope="col">Cleanup</th>
           </tr>
@@ -81,6 +91,9 @@ export function RepoTable({ repositories }: RepoTableProps) {
                   ) : (
                     <p>No description available.</p>
                   )}
+                  {repository.summary ? (
+                    <p className="repo-table__summary">{repository.summary}</p>
+                  ) : null}
                 </div>
               </td>
               <td>
@@ -88,9 +101,30 @@ export function RepoTable({ repositories }: RepoTableProps) {
                   {statusLabel(repository.personal?.status)}
                 </Badge>
               </td>
-              <td>{repository.stargazersCount}</td>
+              <td>
+                <div className="repo-table__signals">
+                  <Badge tone={commitBadgeTone(repository.hasMyCommits)}>
+                    {commitLabel(repository.hasMyCommits)}
+                  </Badge>
+                  {repository.personal?.tags.length ? (
+                    <p>Tags: {repository.personal.tags.join(", ")}</p>
+                  ) : null}
+                  <p>Stars: {repository.stargazersCount}</p>
+                </div>
+              </td>
               <td>{formatDate(repository.updatedAt)}</td>
-              <td>{repository.isLikelyAbandoned ? "Review" : "Healthy"}</td>
+              <td>
+                {repository.isLikelyAbandoned ? (
+                  <div className="repo-table__cleanup">
+                    <strong>Review</strong>
+                    {repository.cleanupReasons.length ? (
+                      <p>{repository.cleanupReasons.join(", ")}</p>
+                    ) : null}
+                  </div>
+                ) : (
+                  "Healthy"
+                )}
+              </td>
             </tr>
           ))}
         </tbody>

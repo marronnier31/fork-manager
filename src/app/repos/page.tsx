@@ -1,8 +1,9 @@
 import { ReposPageView } from "../../components/repos/repos-page";
-import { db } from "../../lib/db";
-
-import type { RepoTableRow } from "../../components/repos/repo-table";
+import { listRepositories, type ListRepositoriesFilters } from "../../lib/repos/queries";
 type SearchParams = Record<string, string | string[] | undefined>;
+
+const REPO_STATUSES = new Set(["active", "watching", "archive", "cleanup", "all"]);
+const COMMIT_FILTERS = new Set(["yes", "no", "unknown", "all"]);
 
 function firstParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -12,20 +13,29 @@ function firstParam(value: string | string[] | undefined) {
   return value ?? "";
 }
 
+function normalizeStatus(value: string): ListRepositoriesFilters["status"] {
+  return REPO_STATUSES.has(value) ? (value as ListRepositoriesFilters["status"]) : "all";
+}
+
+function normalizeCommits(value: string): ListRepositoriesFilters["commits"] {
+  return COMMIT_FILTERS.has(value) ? (value as ListRepositoriesFilters["commits"]) : "all";
+}
+
 export default async function ReposPage({
   searchParams = {}
 }: {
   searchParams?: SearchParams;
 } = {}) {
-  const repositories = (await db.repository.findMany({
-    include: { personal: true }
-  })) as unknown as RepoTableRow[];
+  const normalizedSearchParams = {
+    search: firstParam(searchParams.search),
+    status: normalizeStatus(firstParam(searchParams.status)),
+    commits: normalizeCommits(firstParam(searchParams.commits)),
+    tag: firstParam(searchParams.tag)
+  };
+  const repositories = await listRepositories(normalizedSearchParams);
 
   return ReposPageView({
     repositories,
-    searchParams: {
-      search: firstParam(searchParams.search),
-      status: firstParam(searchParams.status)
-    }
+    searchParams: normalizedSearchParams
   });
 }

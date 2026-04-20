@@ -145,7 +145,7 @@ a {
 
 .repo-filters {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr) auto;
+  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(180px, 1fr)) auto;
   gap: 12px;
   padding: 16px;
   border: 1px solid var(--border);
@@ -228,7 +228,15 @@ a {
 }
 
 .sync-button {
+  display: grid;
+  gap: 8px;
   justify-self: start;
+}
+
+.sync-button__message {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
 }
 
 .badge {
@@ -308,6 +316,23 @@ a {
 }
 
 .repo-table__repo p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.repo-table__summary {
+  font-size: 14px;
+}
+
+.repo-table__signals,
+.repo-table__cleanup {
+  display: grid;
+  gap: 6px;
+}
+
+.repo-table__signals p,
+.repo-table__cleanup p {
   margin: 0;
   color: var(--muted);
   line-height: 1.4;
