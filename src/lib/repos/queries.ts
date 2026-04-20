@@ -228,3 +228,18 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     ).length
   };
 }
+
+export async function listCleanupCandidates(): Promise<ListedRepository[]> {
+  const records = (await db.repository.findMany({
+    where: { isFork: true },
+    include: { personal: true },
+    orderBy: [{ updatedAt: "asc" }, { fullName: "asc" }]
+  })) as RepositoryRow[];
+
+  return records
+    .map(hydrateRepository)
+    .filter(
+      (repository) =>
+        repository.isLikelyAbandoned || repository.personal?.status === "cleanup"
+    );
+}
